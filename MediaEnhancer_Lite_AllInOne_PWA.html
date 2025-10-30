@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Media Enhancer Lite — All‑in‑One（画像/動画/アニメ・完全ローカル）</title>
+<style>
+:root{ --bg:#0c0f0e; --fg:#e9f2ec; --muted:#9aa6a0; --card:#141a18; --acc:#3aa36d; --line:#233229; --btn:#1e2a24; }
+*{ box-sizing:border-box; }
+html,body{ margin:0; background:var(--bg); color:var(--fg); font-family:-apple-system,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+header{ padding:14px 14px 6px; }
+h1{ font-size:18px; margin:0 0 4px; }
+.sub{ color:var(--muted); font-size:12px; margin:0; }
+main{ padding:12px; }
+.card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+.tabs{ display:flex; gap:8px; margin-bottom:10px; }
+.tab{ flex:1 1 auto; text-align:center; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--btn); cursor:pointer; }
+.tab.active{ background:var(--acc); color:#fff; border-color:transparent; }
+.row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+label{ display:block; font-size:12px; color:var(--muted); margin:6px 0 4px; }
+input[type=file]{ display:none; }
+.btn-file{ display:inline-block; padding:10px 14px; background:var(--btn); border:1px solid var(--line); border-radius:8px; cursor:pointer; }
+select,input[type=range],input[type=number]{ width:100%; }
+button{ padding:10px 12px; border-radius:10px; border:1px solid transparent; color:#fff; background:var(--btn); border-color:var(--line); cursor:pointer; }
+button.primary{ background:var(--acc); border-color:transparent; }
+button:disabled{ opacity:.6; cursor:not-allowed; }
+.progress{ width:100%; height:10px; border-radius:6px; background:#1a2420; margin-top:8px; overflow:hidden; }
+.bar{ height:100%; background:linear-gradient(90deg,#3aa36d,#7fd9ac); width:0%; transition:width .2s; }
+.controls{ margin-top:8px; display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px; }
+.group{ border:1px solid var(--line); border-radius:10px; padding:8px; }
+.group h3{ margin:0 0 6px; font-size:13px; color:#dfe9e3; }
+.value{ display:inline-block; width:48px; text-align:right; font-variant-numeric:tabular-nums; }
+.switch{ display:flex; gap:6px; flex-wrap:wrap; }
+.kbd{ font-size:11px; color:#cfe6dc; background:#1b2722; padding:2px 6px; border-radius:6px; border:1px solid #2b4236; }
+.canvasWrap{ position:relative; width:100%; margin-top:10px; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#0a0f0d; touch-action:none; }
+#imgBefore,#imgAfter,#vidBefore,#vidAfter,#aniCanvas{ display:block; width:100%; height:auto; }
+#imgAfter,#vidAfter{ position:absolute; inset:0; }
+.slider{ position:absolute; top:0; bottom:0; width:0; border-left:2px solid rgba(255,255,255,.95); box-shadow:0 0 0 1px rgba(0,0,0,.2); }
+.handle{ position:absolute; top:50%; transform:translate(-50%,-50%); width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.08); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.2); }
+.handle::before{ content:'⇆'; color:#fff; font-size:14px; }
+.guides{ position:absolute; inset:0; pointer-events:none; }
+.guides .g{ position:absolute; top:0; bottom:0; width:1px; background:rgba(255,255,255,.12); }
+.guides .g:nth-child(1){ left:25%; } .guides .g:nth-child(2){ left:50%; } .guides .g:nth-child(3){ left:75%; }
+.tip{ color:var(--muted); font-size:12px; margin-top:8px; }
+.actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+.badge{ font-size:11px; padding:2px 6px; border-radius:999px; background:#203027; border:1px solid #2b4236; color:#cfe6dc; }
+.loupe{ position:absolute; width:120px; height:120px; border-radius:50%; border:2px solid rgba(255,255,255,.8); overflow:hidden; pointer-events:none; display:none; }
+.loupe canvas{ width:100%; height:100%; }
+.hidden{ display:none; }
+hr.sep{ border:0; border-top:1px solid var(--line); margin:12px 0; opacity:.7; }
+.anchor{ position:absolute; width:12px; height:12px; background:#3aa36d; border:2px solid #fff; border-radius:50%; transform:translate(-50%,-50%); cursor:grab; }
+footer{ text-align:center; color:var(--muted); padding:12px; font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Media Enhancer Lite — All‑in‑One（画像/動画/アニメ・完全ローカル）</h1>
+  <p class="sub">通信ゼロ。画像/短い動画の高画質化（比較スライダー/サイド・ルーペ・WB・オートトーン・保存）＋ 静止画から“生きてる風”アニメ。</p>
+</header>
+
+<main>
+  <div class="tabs">
+    <div class="tab active" data-tab="image">画像</div>
+    <div class="tab" data-tab="video">動画（短尺）</div>
+    <div class="tab" data-tab="animate">アニメ（静止画→短い動画）</div>
+  </div>
+
+  <!-- IMAGE PANEL -->
+  <section class="card" id="panel-image">
+    <div class="row">
+      <label class="btn-file">
+        <input id="imgFile" type="file" accept="image/*" />
+        <span>画像を選ぶ</span>
+      </label>
+      <div class="switch">
+        <span class="badge">表示</span>
+        <button id="imgViewSlider" class="primary">スライダー</button>
+        <button id="imgViewSide">サイドバイサイド</button>
+        <button id="imgLoupeBtn">ルーペ</button>
+      </div>
+      <div class="switch">
+        <span class="badge">WB/トーン</span>
+        <button id="wbPickBtn">WBスポイト</button>
+        <button id="autoToneBtn">オートトーン</button>
+        <span id="wbStatus" class="kbd">WB: OFF</span>
+      </div>
+      <div class="switch">
+        <span class="badge">プリセット</span>
+        <select id="presetSel">
+          <option value="">なし</option>
+          <option value="portrait">Portrait</option>
+          <option value="landscape">Landscape</option>
+          <option value="sns">SNS</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="group">
+        <h3>拡大＆ノイズ</h3>
+        <label>拡大</label>
+        <select id="imgScale">
+          <option value="1">1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+        <label>ノイズ低減</label>
+        <select id="imgDenoise">
+          <option value="none">なし</option>
+          <option value="box1">ボックス弱</option>
+          <option value="box2">ボックス中</option>
+          <option value="median">メディアン(3×3)</option>
+          <option value="bilateral">バイラテラル風(小)</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <h3>シャープ＆階調</h3>
+        <label>シャープ <span id="imgSharpVal" class="value">0.40</span></label>
+        <input id="imgSharp" type="range" min="0" max="1" step="0.05" value="0.40">
+        <label>明るさ <span id="imgBriVal" class="value">0</span></label>
+        <input id="imgBri" type="range" min="-100" max="100" step="1" value="0">
+        <label>コントラスト <span id="imgConVal" class="value">0</span></label>
+        <input id="imgCon" type="range" min="-100" max="100" step="1" value="0">
+      </div>
+
+      <div class="group">
+        <h3>色</h3>
+        <label>彩度 <span id="imgSatVal" class="value">0</span></label>
+        <input id="imgSat" type="range" min="-100" max="100" step="1" value="0">
+        <label>色温度（青←→赤） <span id="imgTempVal" class="value">0</span></label>
+        <input id="imgTemp" type="range" min="-100" max="100" step="1" value="0">
+        <label>色かぶり（緑←→紫） <span id="imgTintVal" class="value">0</span></label>
+        <input id="imgTint" type="range" min="-100" max="100" step="1" value="0">
+      </div>
+
+      <div class="group">
+        <h3>保存</h3>
+        <label>形式</label>
+        <select id="imgFormat">
+          <option value="png">PNG（可逆）</option>
+          <option value="jpeg">JPEG</option>
+        </select>
+        <label>品質（JPEG） <span id="imgQVal" class="value">0.95</span></label>
+        <input id="imgQ" type="range" min="0.5" max="1" step="0.01" value="0.95">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="imgRun" class="primary" disabled>高画質化を実行</button>
+      <div class="progress" id="imgProg" hidden><div class="bar" id="imgBar"></div></div>
+      <button id="imgSave" disabled>写真に保存/共有</button>
+      <button id="imgOpen" disabled>新しいタブで開く</button>
+    </div>
+
+    <div class="canvasWrap" id="imgWrap" hidden>
+      <canvas id="imgBefore"></canvas>
+      <canvas id="imgAfter"></canvas>
+      <div id="imgSlider" class="slider" style="left:50%"><div class="handle"></div></div>
+      <div class="guides"><div class="g"></div><div class="g"></div><div class="g"></div></div>
+      <div class="loupe" id="imgLoupe"><canvas id="imgLoupeCanvas"></canvas></div>
+    </div>
+    <p class="tip">スライダーは指を離すと <b>25% / 50% / 75%</b> にスナップ。WBスポイトは画像をタップ。</p>
+  </section>
+
+  <!-- VIDEO PANEL -->
+  <section class="card hidden" id="panel-video">
+    <div class="row">
+      <label class="btn-file">
+        <input id="vidFile" type="file" accept="video/*" />
+        <span>動画を選ぶ（短尺推奨）</span>
+      </label>
+      <div class="switch">
+        <span class="badge">表示</span>
+        <button id="vidViewSlider" class="primary">スライダー</button>
+        <button id="vidViewSide">サイドバイサイド</button>
+      </div>
+      <div class="switch">
+        <span class="badge">コントロール</span>
+        <button id="vidPlay" disabled>▶ 再生</button>
+        <button id="vidPause" disabled>⏸ 一時停止</button>
+        <span class="kbd" id="vidInfo">未読み込み</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="group">
+        <h3>解像度＆ノイズ</h3>
+        <label>スケール</label>
+        <select id="vidScale">
+          <option value="1">1×（推奨）</option>
+          <option value="0.75">0.75×</option>
+          <option value="0.5">0.5×</option>
+        </select>
+        <label>ノイズ低減</label>
+        <select id="vidDenoise">
+          <option value="none">なし</option>
+          <option value="box1">ボックス弱</option>
+          <option value="median">メディアン</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <h3>シャープ＆色</h3>
+        <label>シャープ <span id="vidSharpVal" class="value">0.30</span></label>
+        <input id="vidSharp" type="range" min="0" max="1" step="0.05" value="0.30">
+        <label>明るさ <span id="vidBriVal" class="value">0</span></label>
+        <input id="vidBri" type="range" min="-100" max="100" step="1" value="0">
+        <label>コントラスト <span id="vidConVal" class="value">0</span></label>
+        <input id="vidCon" type="range" min="-100" max="100" step="1" value="0">
+        <label>彩度 <span id="vidSatVal" class="value">0</span></label>
+        <input id="vidSat" type="range" min="-100" max="100" step="1" value="0">
+        <label>色温度 <span id="vidTempVal" class="value">0</span></label>
+        <input id="vidTemp" type="range" min="-100" max="100" step="1" value="0">
+        <label>色かぶり <span id="vidTintVal" class="value">0</span></label>
+        <input id="vidTint" type="range" min="-100" max="100" step="1" value="0">
+      </div>
+
+      <div class="group">
+        <h3>エクスポート</h3>
+        <button id="vidExport" disabled>動画を書き出す（対応端末のみ）</button>
+        <button id="vidFrameSave" disabled>現在フレームを保存</button>
+        <p class="tip">Safariで書き出し不可の場合は<strong>画面収録</strong>または「フレーム保存」を使ってください。</p>
+      </div>
+    </div>
+
+    <div class="canvasWrap" id="vidWrap" hidden>
+      <canvas id="vidBefore"></canvas>
+      <canvas id="vidAfter"></canvas>
+      <div id="vidSlider" class="slider" style="left:50%"><div class="handle"></div></div>
+      <div class="guides"><div class="g"></div><div class="g"></div><div class="g"></div></div>
+    </div>
+    <div class="actions">
+      <div class="progress" id="vidProg" hidden><div class="bar" id="vidBar"></div></div>
+    </div>
+    <p class="tip">短尺（〜10〜20秒、〜720p）が現実的。端末の発熱に注意。</p>
+  </section>
+
+  <!-- ANIMATE PANEL -->
+  <section class="card hidden" id="panel-animate">
+    <div class="row">
+      <label class="btn-file">
+        <input id="aniFile" type="file" accept="image/*" />
+        <span>ポートレート画像を選ぶ</span>
+      </label>
+      <span class="kbd">顔の位置を中央付近に。ドラッグで目・口アンカー調整可。</span>
+    </div>
+
+    <div class="controls">
+      <div class="group">
+        <h3>動き</h3>
+        <label>頭の揺れ（度） <span id="aniHeadVal" class="value">3</span></label>
+        <input id="aniHead" type="range" min="0" max="10" step="0.5" value="3">
+        <label>呼吸（拡大率%） <span id="aniBreathVal" class="value">2</span></label>
+        <input id="aniBreath" type="range" min="0" max="5" step="0.5" value="2">
+        <label>微笑（%） <span id="aniSmileVal" class="value">8</span></label>
+        <input id="aniSmile" type="range" min="0" max="20" step="1" value="8">
+      </div>
+
+      <div class="group">
+        <h3>目・口</h3>
+        <label><input id="aniBlink" type="checkbox" checked> まばたき（自動）</label>
+        <label><input id="aniEye" type="checkbox" checked> 目線ゆらぎ</label>
+        <label><input id="aniLip" type="checkbox"> 口パク（疑似）</label>
+      </div>
+
+      <div class="group">
+        <h3>長さ＆書き出し</h3>
+        <label>長さ（秒） <span id="aniDurVal" class="value">6</span></label>
+        <input id="aniDur" type="range" min="2" max="15" step="1" value="6">
+        <label>FPS <span id="aniFpsVal" class="value">24</span></label>
+        <input id="aniFps" type="range" min="12" max="60" step="1" value="24">
+        <button id="aniPreview" class="primary" disabled>プレビュー</button>
+        <button id="aniExport" disabled>動画を書き出す（対応端末のみ）</button>
+        <p class="tip">iOSで書き出し不可の機種は<strong>画面収録</strong>が確実です。</p>
+      </div>
+
+      <div class="group">
+        <h3>目・口の位置（任意）</h3>
+        <p class="tip">自動推定が合わない場合は、キャンバス上のアンカー（左右の目・口角）をドラッグ。</p>
+        <div class="switch">
+          <span class="kbd">アンカー: 緑=左目, 右目, 口左, 口右</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvasWrap" id="aniWrap" hidden>
+      <canvas id="aniCanvas"></canvas>
+      <div id="aLE" class="anchor" title="左目"></div>
+      <div id="aRE" class="anchor" title="右目"></div>
+      <div id="aLM" class="anchor" title="口の左"></div>
+      <div id="aRM" class="anchor" title="口の右"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>ホーム画面に追加（PWA / オフライン）</h3>
+    <ol>
+      <li>このHTMLと <code>manifest.webmanifest</code> / <code>sw.js</code> を同じフォルダに置く</li>
+      <li><b>HTTP</b>で開く（GitHub Pages / ローカル簡易サーバ / AndroidローカルWebサーバ等）</li>
+      <li>Safari/Chromeで「共有」→ <b>ホーム画面に追加</b></li>
+      <li>初回アクセスでキャッシュ、以降は電波不要で起動</li>
+    </ol>
+    <p class="tip">file://直開きはPWA登録不可。iPhoneだけで済ませるなら「ショートカット」→このHTMLを開く→ホーム画面アイコン、でも代用可。</p>
+  </section>
+</main>
+
+<footer>
+  <small>© You / オフライン専用・改変自由（解析/外部フォント/トラッキングなし）</small>
+</footer>
+
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+// --- Tabs ---
+const tabs = $$('.tab');
+const pImg = $('#panel-image'), pVid = $('#panel-video'), pAni = $('#panel-animate');
+tabs.forEach(t=>t.addEventListener('click', ()=>{
+  tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active');
+  const tab = t.getAttribute('data-tab');
+  pImg.classList.toggle('hidden', tab!=='image');
+  pVid.classList.toggle('hidden', tab!=='video');
+  pAni.classList.toggle('hidden', tab!=='animate');
+}));
+
+// --- PWA register (http/https only) ---
+if(location.protocol.startsWith('http')){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker?.register('sw.js').catch(()=>{});
+  });
+}
+
+// ---------- Common Helpers ----------
+function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function showProgress(elBarEl, p){
+  elBarEl.parentElement.hidden = false;
+  elBarEl.style.width = Math.max(0, Math.min(100, Math.floor(p*100))) + '%';
+}
+function hideProgress(elBarEl){ elBarEl.parentElement.hidden = true; }
+
+// Color adjustments
+function adjustBrightnessContrast(d, bri, con){
+  const b = bri/100*255;
+  const c = Math.tan(( (con+100)/200 * Math.PI/4 ))*2; // contrast curve
+  for(let i=0;i<d.length;i+=4){
+    d[i]   = clamp((d[i]-128)*c + 128 + b, 0, 255);
+    d[i+1] = clamp((d[i+1]-128)*c + 128 + b, 0, 255);
+    d[i+2] = clamp((d[i+2]-128)*c + 128 + b, 0, 255);
+  }
+}
+function adjustSaturation(d, sat){
+  const s = sat/100;
+  const rw=0.2126, gw=0.7152, bw=0.0722;
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i], g=d[i+1], b=d[i+2];
+    const l = r*rw + g*gw + b*bw;
+    d[i]   = clamp(l + (r-l)*(1+s),0,255);
+    d[i+1] = clamp(l + (g-l)*(1+s),0,255);
+    d[i+2] = clamp(l + (b-l)*(1+s),0,255);
+  }
+}
+function adjustTempTint(d, temp, tint){
+  const tr = temp/100*20;
+  const tb = -temp/100*20;
+  const tg = -tint/100*20;
+  const tm = tint/100*20;
+  for(let i=0;i<d.length;i+=4){
+    d[i]   = clamp(d[i]   + tr + tm*0.5, 0, 255);
+    d[i+1] = clamp(d[i+1] + tg, 0, 255);
+    d[i+2] = clamp(d[i+2] + tb + tm*0.5, 0, 255);
+  }
+}
+
+// Denoise filters
+function boxBlurImageData(img, radius){
+  const w = img.width, h = img.height;
+  const src = img.data;
+  const tmp = new Uint8ClampedArray(src.length);
+  const w4 = w*4, rs = radius;
+  for(let y=0;y<h;y++){
+    let idx=y*w4;
+    let sum=[0,0,0,0];
+    for(let i=-rs;i<=rs;i++){
+      const x0 = clamp(i,0,w-1);
+      const j=idx+(x0<<2);
+      sum[0]+=src[j]; sum[1]+=src[j+1]; sum[2]+=src[j+2]; sum[3]+=src[j+3];
+    }
+    for(let x=0;x<w;x++){
+      const out=idx+(x<<2), cnt=rs*2+1;
+      tmp[out]=sum[0]/cnt; tmp[out+1]=sum[1]/cnt; tmp[out+2]=sum[2]/cnt; tmp[out+3]=sum[3]/cnt;
+      const xAdd=clamp(x+rs+1,0,w-1), xSub=clamp(x-rs,0,w-1);
+      const jAdd=idx+(xAdd<<2), jSub=idx+(xSub<<2);
+      sum[0]+=src[jAdd]-src[jSub]; sum[1]+=src[jAdd+1]-src[jSub+1]; sum[2]+=src[jAdd+2]-src[jSub+2]; sum[3]+=src[jAdd+3]-src[jSub+3];
+    }
+  }
+  for(let x=0;x<w;x++){
+    let sum=[0,0,0,0];
+    let idx=x<<2;
+    for(let i=-rs;i<=rs;i++){
+      const y0=clamp(i,0,h-1);
+      const j=((y0*w)<<2)+idx;
+      sum[0]+=tmp[j]; sum[1]+=tmp[j+1]; sum[2]+=tmp[j+2]; sum[3]+=tmp[j+3];
+    }
+    for(let y=0;y<h;y++){
+      const out=((y*w)<<2)+idx, cnt=rs*2+1;
+      src[out]=sum[0]/cnt; src[out+1]=sum[1]/cnt; src[out+2]=sum[2]/cnt; src[out+3]=sum[3]/cnt;
+      const yAdd=clamp(y+rs+1,0,h-1), ySub=clamp(y-rs,0,h-1);
+      const jAdd=((yAdd*w)<<2)+idx, jSub=((ySub*w)<<2)+idx;
+      sum[0]+=tmp[jAdd]-tmp[jSub]; sum[1]+=tmp[jAdd+1]-tmp[jSub+1]; sum[2]+=tmp[jAdd+2]-tmp[jSub+2]; sum[3]+=tmp[jAdd+3]-tmp[jSub+3];
+    }
+  }
+}
+function median3x3(img){
+  const w=img.width, h=img.height;
+  const d=img.data;
+  const out = new Uint8ClampedArray(d.length);
+  const get=(x,y,c)=> d[((y*w+x)<<2)+c];
+  const set=(x,y,c,v)=> { out[((y*w+x)<<2)+c]=v; };
+  for(let y=1;y<h-1;y++){
+    for(let x=1;x<w-1;x++){
+      for(let c=0;c<3;c++){
+        const a=[ get(x-1,y-1,c),get(x,y-1,c),get(x+1,y-1,c),
+                  get(x-1,y,c),  get(x,y,c),  get(x+1,y,c),
+                  get(x-1,y+1,c),get(x,y+1,c),get(x+1,y+1,c) ];
+        a.sort((p,q)=>p-q);
+        set(x,y,c,a[4]);
+      }
+      set(x,y,3,get(x,y,3));
+    }
+  }
+  // borders copy
+  for(let x=0;x<w;x++){
+    for(let c=0;c<4;c++){ out[(x<<2)+c] = d[(x<<2)+c]; out[(((h-1)*w+x)<<2)+c] = d[(((h-1)*w+x)<<2)+c]; }
+  }
+  for(let y=0;y<h;y++){
+    for(let c=0;c<4;c++){ out[((y*w)<<2)+c] = d[((y*w)<<2)+c]; out[(((y*w)+(w-1))<<2)+c] = d[(((y*w)+(w-1))<<2)+c]; }
+  }
+  d.set(out);
+}
+function bilateralLike(img){
+  const w=img.width, h=img.height;
+  const d=img.data;
+  const out=new Uint8ClampedArray(d.length);
+  const radius=1, sigma=12;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const idx=(y*w+x)<<2;
+      const r0=d[idx], g0=d[idx+1], b0=d[idx+2], a0=d[idx+3];
+      let sr=0, sg=0, sb=0, sa=0, sw=0;
+      for(let dy=-radius; dy<=radius; dy++){
+        const yy=clamp(y+dy,0,h-1);
+        for(let dx=-radius; dx<=radius; dx++){
+          const xx=clamp(x+dx,0,w-1);
+          const j=((yy*w+xx)<<2);
+          const dr=d[j]-r0, dg=d[j+1]-g0, db=d[j+2]-b0;
+          const dist=(dr*dr+dg*dg+db*db);
+          const wgt=Math.exp(-dist/(2*sigma*sigma));
+          sr+=d[j]*wgt; sg+=d[j+1]*wgt; sb+=d[j+2]*wgt; sa+=d[j+3]*wgt; sw+=wgt;
+        }
+      }
+      out[idx]=sr/sw; out[idx+1]=sg/sw; out[idx+2]=sb/sw; out[idx+3]=sa/sw;
+    }
+  }
+  d.set(out);
+}
+
+// Unsharp
+function unsharpImageData(img, amount){
+  if(amount<=0) return;
+  const w=img.width, h=img.height;
+  const d=img.data;
+  const clone = new ImageData(new Uint8ClampedArray(d), w, h);
+  boxBlurImageData(clone, 1);
+  const bd=clone.data;
+  for(let i=0;i<d.length;i+=4){
+    d[i]   = clamp(d[i]   + (d[i]   - bd[i])   * amount*1.5, 0, 255);
+    d[i+1] = clamp(d[i+1] + (d[i+1] - bd[i+1]) * amount*1.5, 0, 255);
+    d[i+2] = clamp(d[i+2] + (d[i+2] - bd[i+2]) * amount*1.5, 0, 255);
+  }
+}
+
+// AutoTone & WB
+function autoTone(img){
+  const w=img.width,h=img.height,d=img.data;
+  const histR=new Uint32Array(256), histG=new Uint32Array(256), histB=new Uint32Array(256);
+  for(let i=0;i<d.length;i+=4){ histR[d[i]]++; histG[d[i+1]]++; histB[d[i+2]]++; }
+  function findCut(hist, pct){
+    const total = (w*h);
+    const cut = total * pct;
+    let s=0, lo=0, hi=255;
+    for(let i=0;i<256;i++){ s+=hist[i]; if(s>=cut){ lo=i; break; } }
+    s=0;
+    for(let i=255;i>=0;i--){ s+=hist[i]; if(s>=cut){ hi=i; break; } }
+    return [lo,hi];
+  }
+  const [rL,rH]=findCut(histR, 0.01);
+  const [gL,gH]=findCut(histG, 0.01);
+  const [bL,bH]=findCut(histB, 0.01);
+  for(let i=0;i<d.length;i+=4){
+    d[i]   = clamp((d[i]-rL)*255/Math.max(1,(rH-rL)),0,255);
+    d[i+1] = clamp((d[i+1]-gL)*255/Math.max(1,(gH-gL)),0,255);
+    d[i+2] = clamp((d[i+2]-bL)*255/Math.max(1,(bH-bL)),0,255);
+  }
+}
+function whiteBalanceAt(img, x, y, radius){
+  const w=img.width,h=img.height,d=img.data;
+  let sr=0,sg=0,sb=0,cnt=0;
+  for(let j=-radius;j<=radius;j++){
+    for(let i=-radius;i<=radius;i++){
+      const xx=clamp(x+i,0,w-1), yy=clamp(y+j,0,h-1);
+      const k=((yy*w+xx)<<2);
+      sr+=d[k]; sg+=d[k+1]; sb+=d[k+2]; cnt++;
+    }
+  }
+  const r=sr/cnt, g=sg/cnt, b=sb/cnt;
+  const avg=(r+g+b)/3;
+  const kr=avg/(r||1), kg=avg/(g||1), kb=avg/(b||1);
+  for(let i=0;i<d.length;i+=4){
+    d[i]=clamp(d[i]*kr,0,255);
+    d[i+1]=clamp(d[i+1]*kg,0,255);
+    d[i+2]=clamp(d[i+2]*kb,0,255);
+  }
+}
+
+// EXIF orientation (JPEG only, minimal parser)
+async function readOrientation(file){
+  try{
+    const buf = await file.arrayBuffer();
+    const view = new DataView(buf);
+    let offset = 2; // skip SOI
+    if(view.getUint16(0) !== 0xFFD8) return 1;
+    while(offset < view.byteLength){
+      const marker = view.getUint16(offset); offset+=2;
+      const len = view.getUint16(offset); offset+=2;
+      if(marker === 0xFFE1){ // APP1
+        if(view.getUint32(offset) === 0x45786966 && view.getUint16(offset+4) === 0){
+          const tiff = offset + 6;
+          const little = view.getUint16(tiff) === 0x4949;
+          const getU16 = (p)=> little? view.getUint16(p, true): view.getUint16(p,false);
+          const getU32 = (p)=> little? view.getUint32(p, true): view.getUint32(p,false);
+          const ifd0 = tiff + getU32(tiff+4);
+          const entries = getU16(ifd0);
+          for(let i=0;i<entries;i++){
+            const p = ifd0 + 2 + i*12;
+            const tag = getU16(p);
+            if(tag === 0x0112){
+              const val = getU16(p+8);
+              return val||1;
+            }
+          }
+        }
+        break;
+      }else{
+        offset += len-2;
+      }
+    }
+  }catch(e){}
+  return 1;
+}
+function drawOriented(ctx, bmp, orient, w, h){
+  ctx.save();
+  switch(orient){
+    case 2: ctx.translate(w,0); ctx.scale(-1,1); break;
+    case 3: ctx.translate(w,h); ctx.rotate(Math.PI); break;
+    case 4: ctx.translate(0,h); ctx.scale(1,-1); break;
+    case 5: ctx.rotate(0.5*Math.PI); ctx.scale(1,-1); break;
+    case 6: ctx.rotate(0.5*Math.PI); ctx.translate(0,-h); break;
+    case 7: ctx.rotate(0.5*Math.PI); ctx.translate(w,-h); ctx.scale(-1,1); break;
+    case 8: ctx.rotate(-0.5*Math.PI); ctx.translate(-w,0); break;
+    default: break;
+  }
+  ctx.drawImage(bmp,0,0,w,h);
+  ctx.restore();
+}
+
+// ---------- IMAGE PIPELINE ----------
+const imgFile = $('#imgFile');
+const imgRun = $('#imgRun');
+const imgProg = $('#imgBar');
+const imgBefore = $('#imgBefore');
+const imgAfter = $('#imgAfter');
+const imgWrap = $('#imgWrap');
+const imgSlider = $('#imgSlider');
+const imgViewSlider = $('#imgViewSlider');
+const imgViewSide = $('#imgViewSide');
+const imgLoupeBtn = $('#imgLoupeBtn');
+const imgLoupe = $('#imgLoupe');
+const imgLoupeCanvas = $('#imgLoupeCanvas');
+const wbPickBtn = $('#wbPickBtn');
+const wbStatus = $('#wbStatus');
+const autoToneBtn = $('#autoToneBtn');
+
+const imgScale = $('#imgScale');
+const imgDenoise = $('#imgDenoise');
+const imgSharp = $('#imgSharp'); const imgSharpVal=$('#imgSharpVal');
+const imgBri = $('#imgBri'); const imgBriVal=$('#imgBriVal');
+const imgCon = $('#imgCon'); const imgConVal=$('#imgConVal');
+const imgSat = $('#imgSat'); const imgSatVal=$('#imgSatVal');
+const imgTemp = $('#imgTemp'); const imgTempVal=$('#imgTempVal');
+const imgTint = $('#imgTint'); const imgTintVal=$('#imgTintVal');
+const imgFormat = $('#imgFormat');
+const imgQ = $('#imgQ'); const imgQVal=$('#imgQVal');
+const imgSave = $('#imgSave');
+const imgOpen = $('#imgOpen');
+const presetSel = $('#presetSel');
+
+let imgBitmap=null, imgOrient=1, imgWBPicking=false;
+let imgOutCanvas=null, imgMode='slider';
+let imgLastBlobUrl=null;
+let loupeOn=false;
+
+function setImgVals(){
+  imgSharpVal.textContent=(+imgSharp.value).toFixed(2);
+  imgBriVal.textContent=imgBri.value;
+  imgConVal.textContent=imgCon.value;
+  imgSatVal.textContent=imgSat.value;
+  imgTempVal.textContent=imgTemp.value;
+  imgTintVal.textContent=imgTint.value;
+  imgQVal.textContent=(+imgQ.value).toFixed(2);
+}
+['input','change'].forEach(ev=>{
+  [imgSharp,imgBri,imgCon,imgSat,imgTemp,imgTint,imgQ].forEach(el=> el.addEventListener(ev,setImgVals));
+});
+setImgVals();
+
+presetSel.addEventListener('change', ()=>{
+  const p=presetSel.value;
+  if(p==='portrait'){ imgDenoise.value='bilateral'; imgSharp.value=0.35; imgSat.value=8; imgBri.value=5; imgCon.value=8; }
+  else if(p==='landscape'){ imgDenoise.value='box1'; imgSharp.value=0.45; imgSat.value=12; imgBri.value=0; imgCon.value=10; }
+  else if(p==='sns'){ imgDenoise.value='box1'; imgSharp.value=0.5; imgSat.value=15; imgBri.value=6; imgCon.value=12; }
+  setImgVals();
+});
+
+imgFile.addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  imgOrient = f.type==='image/jpeg' ? await readOrientation(f) : 1;
+  const url = URL.createObjectURL(f);
+  const blob = await (await fetch(url)).blob();
+  URL.revokeObjectURL(url);
+  imgBitmap = await createImageBitmap(blob);
+  drawImgBefore();
+  imgRun.disabled=false;
+  imgWrap.hidden=true;
+  imgSave.disabled=true; imgOpen.disabled=true;
+});
+function drawImgBefore(){
+  const max=1600;
+  const s = Math.min(1, max/imgBitmap.width, max/imgBitmap.height);
+  let w = Math.round(imgBitmap.width*s);
+  let h = Math.round(imgBitmap.height*s);
+  if(imgOrient===6||imgOrient===8){ [w,h]=[h,w]; }
+  imgBefore.width=w; imgBefore.height=h;
+  const bctx=imgBefore.getContext('2d');
+  bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high';
+  bctx.clearRect(0,0,w,h);
+  drawOriented(bctx, imgBitmap, imgOrient, w, h);
+}
+function setImgClip(f){
+  const w = imgWrap.clientWidth;
+  const x = Math.max(0, Math.min(w, Math.round(w*f)));
+  imgSlider.style.left = x+'px';
+  imgAfter.style.clipPath = 'inset(0 ' + (w - Math.round(x)) + 'px 0 0)';
+}
+function attachImgSlider(){
+  let dragging=false;
+  const onMove=(cx)=>{
+    const r=imgWrap.getBoundingClientRect();
+    const x = Math.max(0, Math.min(r.width, cx - r.left));
+    setImgClip(x/r.width);
+  };
+  const snap=()=>{
+    const r=imgWrap.getBoundingClientRect();
+    const cur=parseInt(imgSlider.style.left||'0',10);
+    const f=r.width?cur/r.width:0.5;
+    const pts=[0.25,0.5,0.75];
+    let nearest=pts[0], best=Math.abs(f-nearest);
+    for(const s of pts){ const d=Math.abs(f-s); if(d<best){best=d; nearest=s;} }
+    animateImgTo(nearest,120);
+  };
+  imgWrap.addEventListener('pointerdown', e=>{ if(imgMode!=='slider')return; dragging=true; imgWrap.setPointerCapture(e.pointerId); onMove(e.clientX); });
+  imgWrap.addEventListener('pointermove', e=>{ if(imgMode!=='slider')return; if(dragging) onMove(e.clientX); });
+  imgWrap.addEventListener('pointerup',   e=>{ if(imgMode!=='slider')return; dragging=false; snap(); });
+  imgWrap.addEventListener('pointercancel',e=>{ if(imgMode!=='slider')return; dragging=false; snap(); });
+  imgWrap.addEventListener('click', e=>{
+    if(imgMode!=='slider')return;
+    const r=imgWrap.getBoundingClientRect();
+    const f=(Math.max(0, Math.min(r.width, e.clientX-r.left)))/r.width;
+    const pts=[0.25,0.5,0.75];
+    let nearest=pts.reduce((a,b)=>Math.abs(b-f)<Math.abs(a-f)?b:a);
+    animateImgTo(nearest,120);
+  });
+}
+function animateImgTo(targetF, dur){
+  const start=performance.now();
+  const r=imgWrap.getBoundingClientRect();
+  const w=r.width||1;
+  const fromX=parseInt(imgSlider.style.left||'0',10);
+  const toX=Math.round(w*Math.max(0,Math.min(1,targetF)));
+  const dist=toX-fromX;
+  const ease=t=> t<.5?2*t*t:-1+(4-2*t)*t;
+  function step(now){
+    const t=Math.min(1,(now-start)/dur);
+    const x=fromX+dist*ease(t);
+    imgSlider.style.left=Math.round(x)+'px';
+    imgAfter.style.clipPath='inset(0 '+(w - Math.round(x))+'px 0 0)';
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+imgViewSlider.addEventListener('click', ()=>{
+  imgMode='slider';
+  imgViewSlider.classList.add('primary');
+  imgViewSide.classList.remove('primary');
+  imgSlider.style.display='block';
+  setImgClip(0.5);
+});
+imgViewSide.addEventListener('click', ()=>{
+  imgMode='side';
+  imgViewSide.classList.add('primary');
+  imgViewSlider.classList.remove('primary');
+  imgSlider.style.display='none';
+  imgAfter.style.clipPath='inset(0 50% 0 0)';
+});
+
+imgLoupeBtn.addEventListener('click', ()=>{
+  loupeOn = !loupeOn;
+  imgLoupe.style.display = loupeOn? 'block':'none';
+});
+imgWrap.addEventListener('pointermove', (e)=>{
+  if(!loupeOn||imgWrap.hidden) return;
+  const rect=imgWrap.getBoundingClientRect();
+  const lx = e.clientX-rect.left, ly=e.clientY-rect.top;
+  imgLoupe.style.left=(lx-60)+'px'; imgLoupe.style.top=(ly-60)+'px';
+  const scale=2.5;
+  const lw=imgLoupeCanvas.width=120, lh=imgLoupeCanvas.height=120;
+  const ctx=imgLoupeCanvas.getContext('2d');
+  const sx = clamp(lx - lw/(2*scale), 0, imgAfter.width - lw/scale);
+  const sy = clamp(ly - lh/(2*scale), 0, imgAfter.height - lh/scale);
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(imgAfter, sx, sy, lw/scale, lh/scale, 0,0,lw,lh);
+});
+
+wbPickBtn.addEventListener('click', ()=>{
+  imgWBPicking = !imgWBPicking;
+  wbStatus.textContent = imgWBPicking ? 'WB: PICKING' : 'WB: OFF';
+});
+imgWrap.addEventListener('click', (e)=>{
+  if(!imgWBPicking||imgWrap.hidden) return;
+  const rect=imgAfter.getBoundingClientRect();
+  const x = Math.floor((e.clientX-rect.left) * (imgAfter.width/rect.width));
+  const y = Math.floor((e.clientY-rect.top)  * (imgAfter.height/rect.height));
+  const ctx = imgAfter.getContext('2d');
+  let id = ctx.getImageData(0,0,imgAfter.width,imgAfter.height);
+  whiteBalanceAt(id, x, y, 5);
+  ctx.putImageData(id,0,0);
+  imgWBPicking=false; wbStatus.textContent='WB: SET';
+});
+
+autoToneBtn.addEventListener('click', ()=>{
+  const ctx=imgAfter.getContext('2d');
+  let id = ctx.getImageData(0,0,imgAfter.width,imgAfter.height);
+  autoTone(id);
+  ctx.putImageData(id,0,0);
+});
+
+imgRun.addEventListener('click', async ()=>{
+  if(!imgBitmap) return;
+  const scale = parseInt(imgScale.value,10);
+  const den = imgDenoise.value;
+  const amount = parseFloat(imgSharp.value);
+  const bri=+imgBri.value, con=+imgCon.value, sat=+imgSat.value, tmp=+imgTemp.value, tnt=+imgTint.value;
+
+  showProgress(imgProg,0.1);
+  const upW = Math.round(imgBitmap.width * scale);
+  const upH = Math.round(imgBitmap.height * scale);
+  imgOutCanvas = document.createElement('canvas');
+  let ctx = imgOutCanvas.getContext('2d');
+  imgOutCanvas.width=upW; imgOutCanvas.height=upH;
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+
+  ctx.save();
+  if(imgOrient===6||imgOrient===8) { imgOutCanvas.width=upH; imgOutCanvas.height=upW; }
+  drawOriented(ctx, imgBitmap, imgOrient, upW, upH);
+  ctx.restore();
+  showProgress(imgProg,0.3);
+
+  let id = ctx.getImageData(0,0,imgOutCanvas.width,imgOutCanvas.height);
+  if(den==='box1') boxBlurImageData(id,1);
+  else if(den==='box2') boxBlurImageData(id,2);
+  else if(den==='median') median3x3(id);
+  else if(den==='bilateral') bilateralLike(id);
+
+  unsharpImageData(id, amount);
+
+  if(bri!==0||con!==0) adjustBrightnessContrast(id.data,bri,con);
+  if(sat!==0) adjustSaturation(id.data,sat);
+  if(tmp!==0||tnt!==0) adjustTempTint(id.data,tmp,tnt);
+
+  ctx.putImageData(id,0,0);
+  showProgress(imgProg,0.8);
+
+  const max=2000;
+  const sA=Math.min(1, max/imgOutCanvas.width, max/imgOutCanvas.height);
+  imgAfter.width = Math.round(imgOutCanvas.width*sA);
+  imgAfter.height= Math.round(imgOutCanvas.height*sA);
+  const actx = imgAfter.getContext('2d');
+  actx.imageSmoothingEnabled=true; actx.imageSmoothingQuality='high';
+  actx.clearRect(0,0,imgAfter.width,imgAfter.height);
+  actx.drawImage(imgOutCanvas,0,0,imgAfter.width,imgAfter.height);
+
+  // ensure before canvas visible height matches
+  const h = Math.max(imgBefore.height, imgAfter.height);
+  imgWrap.style.height = h+'px';
+
+  imgWrap.hidden=false;
+  if(imgMode==='slider'){ setImgClip(0.5); imgSlider.style.display='block'; }
+  else{ imgSlider.style.display='none'; imgAfter.style.clipPath='inset(0 50% 0 0)'; }
+  hideProgress(imgProg);
+  imgSave.disabled=false; imgOpen.disabled=false;
+});
+
+attachImgSlider();
+
+imgSave.addEventListener('click', async ()=>{
+  if(!imgOutCanvas) return;
+  const fmt = imgFormat.value;
+  const q = parseFloat(imgQ.value);
+  const mime = fmt==='jpeg' ? 'image/jpeg' : 'image/png';
+  imgOutCanvas.toBlob(async (blob)=>{
+    const f = new File([blob], 'enhanced.'+(fmt==='jpeg'?'jpg':'png'), {type:mime});
+    if(navigator.canShare && navigator.canShare({files:[f]}) && navigator.share){
+      try{ await navigator.share({ files:[f], title:'Enhanced Image' }); }
+      catch(err){ openBlobInNewTab(blob); }
+    }else{
+      openBlobInNewTab(blob);
+    }
+  }, mime, q);
+});
+imgOpen.addEventListener('click', ()=>{
+  if(!imgOutCanvas) return;
+  const fmt = imgFormat.value;
+  const q = parseFloat(imgQ.value);
+  const mime = fmt==='jpeg' ? 'image/jpeg' : 'image/png';
+  imgOutCanvas.toBlob((blob)=> openBlobInNewTab(blob), mime, q);
+});
+function openBlobInNewTab(blob){
+  if(imgLastBlobUrl) URL.revokeObjectURL(imgLastBlobUrl);
+  imgLastBlobUrl = URL.createObjectURL(blob);
+  window.open(imgLastBlobUrl,'_blank');
+}
+
+// ---------- VIDEO PIPELINE ----------
+const vidFile = $('#vidFile');
+const vidBefore = $('#vidBefore');
+const vidAfter = $('#vidAfter');
+const vidWrap = $('#vidWrap');
+const vidSlider = $('#vidSlider');
+const vidViewSlider = $('#vidViewSlider');
+const vidViewSide = $('#vidViewSide');
+const vidPlay = $('#vidPlay');
+const vidPause = $('#vidPause');
+const vidInfo = $('#vidInfo');
+const vidScale = $('#vidScale');
+const vidDenoise = $('#vidDenoise');
+const vidSharp = $('#vidSharp'); const vidSharpVal=$('#vidSharpVal');
+const vidBri = $('#vidBri'); const vidBriVal=$('#vidBriVal');
+const vidCon = $('#vidCon'); const vidConVal=$('#vidConVal');
+const vidSat = $('#vidSat'); const vidSatVal=$('#vidSatVal');
+const vidTemp = $('#vidTemp'); const vidTempVal=$('#vidTempVal');
+const vidTint = $('#vidTint'); const vidTintVal=$('#vidTintVal');
+const vidProg = $('#vidBar');
+const vidExport = $('#vidExport');
+const vidFrameSave = $('#vidFrameSave');
+
+function setVidVals(){
+  vidSharpVal.textContent=(+vidSharp.value).toFixed(2);
+  vidBriVal.textContent=vidBri.value;
+  vidConVal.textContent=vidCon.value;
+  vidSatVal.textContent=vidSat.value;
+  vidTempVal.textContent=vidTemp.value;
+  vidTintVal.textContent=vidTint.value;
+}
+['input','change'].forEach(ev=>{
+  [vidSharp,vidBri,vidCon,vidSat,vidTemp,vidTint].forEach(el=> el.addEventListener(ev,setVidVals));
+});
+setVidVals();
+
+let video=null, vidURL=null, vidPlaying=false, vidMode='slider', rec=null, recChunks=[];
+
+vidFile.addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  if(vidURL) URL.revokeObjectURL(vidURL);
+  vidURL = URL.createObjectURL(f);
+  if(video){ video.pause(); }
+  video = document.createElement('video');
+  video.src = vidURL; video.muted=true; video.playsInline=true; video.preload='metadata';
+  await video.play().catch(()=>{});
+  await new Promise(res=> video.addEventListener('loadedmetadata', ()=>res(), {once:true}));
+  video.pause();
+  const s = parseFloat(vidScale.value);
+  const w = Math.round(video.videoWidth*s);
+  const h = Math.round(video.videoHeight*s);
+  vidBefore.width=w; vidBefore.height=h;
+  vidAfter.width=w; vidAfter.height=h;
+  const ctxB=vidBefore.getContext('2d');
+  ctxB.imageSmoothingEnabled=true; ctxB.imageSmoothingQuality='high';
+  ctxB.drawImage(video,0,0,w,h);
+  vidWrap.style.height = h+'px';
+  vidWrap.hidden=false;
+  vidPlay.disabled=false; vidPause.disabled=false;
+  vidExport.disabled = !('MediaRecorder' in window) || !('captureStream' in HTMLCanvasElement.prototype);
+  vidFrameSave.disabled=false;
+  vidInfo.textContent = `${video.videoWidth}×${video.videoHeight} @ ${Math.round(video.duration)}s`;
+  setVidClip(0.5);
+});
+
+function setVidClip(f){
+  const w = vidWrap.clientWidth;
+  const x = Math.max(0, Math.min(w, Math.round(w*f)));
+  vidSlider.style.left = x+'px';
+  vidAfter.style.clipPath = 'inset(0 ' + (w - Math.round(x)) + 'px 0 0)';
+}
+function attachVidSlider(){
+  let dragging=false;
+  const onMove=(cx)=>{
+    const r=vidWrap.getBoundingClientRect();
+    const x = Math.max(0, Math.min(r.width, cx - r.left));
+    setVidClip(x/r.width);
+  };
+  const snap=()=>{
+    const r=vidWrap.getBoundingClientRect();
+    const cur=parseInt(vidSlider.style.left||'0',10);
+    const f=r.width?cur/r.width:0.5;
+    const pts=[0.25,0.5,0.75];
+    let nearest=pts[0], best=Math.abs(f-nearest);
+    for(const s of pts){ const d=Math.abs(f-s); if(d<best){best=d; nearest=s;} }
+    animateVidTo(nearest,120);
+  };
+  vidWrap.addEventListener('pointerdown', e=>{ if(vidMode!=='slider')return; dragging=true; vidWrap.setPointerCapture(e.pointerId); onMove(e.clientX); });
+  vidWrap.addEventListener('pointermove', e=>{ if(vidMode!=='slider')return; if(dragging) onMove(e.clientX); });
+  vidWrap.addEventListener('pointerup',   e=>{ if(vidMode!=='slider')return; dragging=false; snap(); });
+  vidWrap.addEventListener('pointercancel',e=>{ if(vidMode!=='slider')return; dragging=false; snap(); });
+  vidWrap.addEventListener('click', e=>{
+    if(vidMode!=='slider')return;
+    const r=vidWrap.getBoundingClientRect();
+    const f=(Math.max(0, Math.min(r.width, e.clientX-r.left)))/r.width;
+    const pts=[0.25,0.5,0.75];
+    let nearest=pts.reduce((a,b)=>Math.abs(b-f)<Math.abs(a-f)?b:a);
+    animateVidTo(nearest,120);
+  });
+}
+function animateVidTo(targetF, dur){
+  const start=performance.now();
+  const r=vidWrap.getBoundingClientRect();
+  const w=r.width||1;
+  const fromX=parseInt(vidSlider.style.left||'0',10);
+  const toX=Math.round(w*Math.max(0,Math.min(1,targetF)));
+  const dist=toX-fromX;
+  const ease=t=> t<.5?2*t*t:-1+(4-2*t)*t;
+  function step(now){
+    const t=Math.min(1,(now-start)/dur);
+    const x=fromX+dist*ease(t);
+    vidSlider.style.left=Math.round(x)+'px';
+    vidAfter.style.clipPath='inset(0 '+(w - Math.round(x))+'px 0 0)';
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+attachVidSlider();
+
+vidViewSlider.addEventListener('click', ()=>{
+  vidMode='slider';
+  vidViewSlider.classList.add('primary');
+  vidViewSide.classList.remove('primary');
+  vidSlider.style.display='block';
+  setVidClip(0.5);
+});
+vidViewSide.addEventListener('click', ()=>{
+  vidMode='side';
+  vidViewSide.classList.add('primary');
+  vidViewSlider.classList.remove('primary');
+  vidSlider.style.display='none';
+  vidAfter.style.clipPath='inset(0 50% 0 0)';
+});
+
+vidPlay.addEventListener('click', async ()=>{
+  if(!video) return;
+  vidPlaying=true;
+  const w = vidBefore.width, h=vidBefore.height;
+  const ctxB=vidBefore.getContext('2d');
+  const ctxA=vidAfter.getContext('2d');
+  showProgress(vidProg,0);
+  async function step(){
+    if(!vidPlaying) return;
+    ctxB.drawImage(video,0,0,w,h);
+    let id = ctxB.getImageData(0,0,w,h);
+    const den=vidDenoise.value, amount=+vidSharp.value;
+    if(den==='box1') boxBlurImageData(id,1);
+    else if(den==='median') median3x3(id);
+    unsharpImageData(id, amount);
+    const bri=+vidBri.value, con=+vidCon.value, sat=+vidSat.value, tmp=+vidTemp.value, tnt=+vidTint.value;
+    if(bri!==0||con!==0) adjustBrightnessContrast(id.data,bri,con);
+    if(sat!==0) adjustSaturation(id.data,sat);
+    if(tmp!==0||tnt!==0) adjustTempTint(id.data,tmp,tnt);
+    ctxA.putImageData(id,0,0);
+    showProgress(vidProg, video.currentTime / video.duration);
+    if(video.currentTime>=video.duration){ vidPlaying=false; hideProgress(vidProg); return; }
+    video.requestVideoFrameCallback? video.requestVideoFrameCallback(()=>step()) : requestAnimationFrame(step);
+  }
+  video.play().catch(()=>{});
+  step();
+});
+
+vidPause.addEventListener('click', ()=>{
+  if(!video) return;
+  vidPlaying=false;
+  video.pause();
+  hideProgress(vidProg);
+});
+
+vidExport.addEventListener('click', async ()=>{
+  if(!('MediaRecorder' in window) || !('captureStream' in HTMLCanvasElement.prototype)) { alert('この端末は書き出し非対応です'); return; }
+  if(!video) return;
+  const stream = vidAfter.captureStream(30);
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
+             : MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8'
+             : 'video/webm';
+  const rec = new MediaRecorder(stream, { mimeType: mime });
+  const chunks=[];
+  rec.ondataavailable = e=>{ if(e.data.size>0) chunks.push(e.data); };
+  rec.onstop = ()=>{
+    const blob = new Blob(chunks, {type: mime});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'processed.webm';
+    a.click();
+  };
+  rec.start();
+  await vidPlay.click();
+  const endWatcher = setInterval(()=>{
+    if(!vidPlaying){ clearInterval(endWatcher); rec.stop(); }
+  }, 300);
+});
+
+vidFrameSave.addEventListener('click', ()=>{
+  if(!video) return;
+  vidAfter.toBlob((blob)=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='frame.png';
+    a.click();
+  }, 'image/png', 0.95);
+});
+
+// ---------- ANIMATE (Alive Portrait Lite) ----------
+const aniFile = $('#aniFile'); const aniWrap = $('#aniWrap'); const aniCanvas = $('#aniCanvas');
+const aLE=$('#aLE'), aRE=$('#aRE'), aLM=$('#aLM'), aRM=$('#aRM');
+const aniHead=$('#aniHead'), aniBreath=$('#aniBreath'), aniSmile=$('#aniSmile');
+const aniBlink=$('#aniBlink'), aniEye=$('#aniEye'), aniLip=$('#aniLip');
+const aniDur=$('#aniDur'), aniFps=$('#aniFps'); const aniPreview=$('#aniPreview'), aniExport=$('#aniExport');
+const headVal=$('#aniHeadVal'), breathVal=$('#aniBreathVal'), smileVal=$('#aniSmileVal');
+const durVal=$('#aniDurVal'), fpsVal=$('#aniFpsVal');
+
+[aniHead,aniBreath,aniSmile,aniDur,aniFps].forEach(el=> el.addEventListener('input', ()=>{
+  headVal.textContent=aniHead.value; breathVal.textContent=aniBreath.value; smileVal.textContent=aniSmile.value;
+  durVal.textContent=aniDur.value; fpsVal.textContent=aniFps.value;
+}));
+headVal.textContent=aniHead.value; breathVal.textContent=aniBreath.value; smileVal.textContent=aniSmile.value;
+durVal.textContent=aniDur.value; fpsVal.textContent=aniFps.value;
+
+let bmp=null, W=0,H=0, anchors=null, playing=false;
+
+aniFile.addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const url=URL.createObjectURL(f); const blob = await (await fetch(url)).blob(); URL.revokeObjectURL(url);
+  bmp = await createImageBitmap(blob);
+  const max=900, s=Math.min(1, max/bmp.width, max/bmp.height);
+  W=Math.round(bmp.width*s); H=Math.round(bmp.height*s);
+  aniCanvas.width=W; aniCanvas.height=H;
+  anchors = {
+    LE:{x: W*0.40, y:H*0.42},
+    RE:{x: W*0.60, y:H*0.42},
+    LM:{x: W*0.45, y:H*0.62},
+    RM:{x: W*0.55, y:H*0.62},
+  };
+  positionAnchors();
+  drawStill();
+  aniWrap.hidden=false;
+  aniPreview.disabled=false;
+  aniExport.disabled = !('MediaRecorder' in window) || !('captureStream' in HTMLCanvasElement.prototype);
+});
+
+function ctxAni(){ return aniCanvas.getContext('2d'); }
+function positionAnchors(){
+  place(aLE, anchors.LE); place(aRE, anchors.RE); place(aLM, anchors.LM); place(aRM, anchors.RM);
+  function place(el, p){ el.style.left=p.x+'px'; el.style.top=p.y+'px'; }
+}
+function makeDraggable(el, key){
+  let dragging=false;
+  el.addEventListener('pointerdown', e=>{ dragging=true; el.setPointerCapture(e.pointerId); });
+  el.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const r=aniCanvas.getBoundingClientRect();
+    const x=Math.max(0, Math.min(W, e.clientX - r.left));
+    const y=Math.max(0, Math.min(H, e.clientY - r.top));
+    anchors[key]={x,y};
+    el.style.left=x+'px'; el.style.top=y+'px';
+    drawStill();
+  });
+  el.addEventListener('pointerup', ()=> dragging=false);
+  el.addEventListener('pointercancel', ()=> dragging=false);
+}
+makeDraggable(aLE,'LE'); makeDraggable(aRE,'RE'); makeDraggable(aLM,'LM'); makeDraggable(aRM,'RM');
+
+function drawStill(){
+  const c=ctxAni();
+  c.clearRect(0,0,W,H);
+  c.drawImage(bmp,0,0,W,H);
+  c.fillStyle='rgba(58,163,109,.5)';
+  Object.values(anchors).forEach(p=>{ c.beginPath(); c.arc(p.x,p.y,3,0,Math.PI*2); c.fill(); });
+}
+
+function drawFrame(t){
+  const c=ctxAni();
+  c.clearRect(0,0,W,H);
+  const deg = +aniHead.value;
+  const scale = 1 + (+aniBreath.value)/100 * (0.5 + 0.5*Math.sin(t*2*Math.PI/3));
+  const rot = (deg * Math.sin(t*2*Math.PI/4)) * Math.PI/180;
+  c.save();
+  c.translate(W/2, H/2);
+  c.rotate(rot);
+  c.scale(scale, scale);
+  c.translate(-W/2, -H/2);
+  c.drawImage(bmp,0,0,W,H);
+  c.restore();
+
+  if(aniBlink.checked){
+    const blink = Math.max(0, Math.sin(t*2*Math.PI/4 + 1.2));
+    const closeAmt = (blink>0.9)? (blink-0.9)/0.1 : 0;
+    if(closeAmt>0){ drawEyelid(anchors.LE, closeAmt); drawEyelid(anchors.RE, closeAmt); }
+  }
+  if(aniEye.checked){ drawEyeHighlight(anchors.LE, t); drawEyeHighlight(anchors.RE, t+0.5); }
+  if(+aniSmile.value>0){
+    const sAmt = (+aniSmile.value)/100 * (0.5 + 0.5*Math.sin(t*2*Math.PI/5));
+    drawSmile(anchors.LM, anchors.RM, sAmt);
+  }
+  if(aniLip.checked){
+    const open = 0.2 + 0.1*Math.max(0,Math.sin(t*2*Math.PI*3));
+    drawMouthOpen(anchors.LM, anchors.RM, open);
+  }
+}
+
+function drawEyelid(p, amt){
+  const c=ctxAni();
+  const w = W*0.12, h = H*0.04*(1+amt*2);
+  const skin = averageColor(Math.round(p.x), Math.round(p.y-H*0.05), Math.round(W*0.04));
+  c.fillStyle = `rgba(${skin.r},${skin.g},${skin.b},${clamp(0.5+amt*0.5,0,0.95)})`;
+  c.beginPath();
+  c.ellipse(p.x, p.y, w, h, 0, 0, Math.PI*2);
+  c.fill();
+}
+function drawEyeHighlight(p, t){
+  const c=ctxAni();
+  const r = Math.min(W,H)*0.01;
+  const dx = Math.sin(t*4)*r, dy = Math.cos(t*3)*r*0.6;
+  c.fillStyle='rgba(255,255,255,.65)';
+  c.beginPath(); c.arc(p.x+dx, p.y+dy, r*0.6, 0, Math.PI*2); c.fill();
+}
+function drawSmile(l, r, amt){
+  const c=ctxAni();
+  const mid={x:(l.x+r.x)/2, y:(l.y+r.y)/2};
+  const dy = -H*0.02*amt;
+  c.strokeStyle='rgba(255,255,255,.15)';
+  c.lineWidth=2;
+  c.beginPath();
+  c.moveTo(l.x, l.y+dy);
+  c.quadraticCurveTo(mid.x, mid.y+dy*2, r.x, r.y+dy);
+  c.stroke();
+}
+function drawMouthOpen(l, r, amt){
+  const c=ctxAni();
+  const mid={x:(l.x+r.x)/2, y:(l.y+r.y)/2};
+  const w = (r.x-l.x)*0.9, h = H*0.02*(1+amt*3);
+  c.fillStyle='rgba(0,0,0,.35)';
+  c.beginPath();
+  c.ellipse(mid.x, mid.y, w/2, h, 0, 0, Math.PI*2);
+  c.fill();
+}
+function averageColor(cx, cy, rad){
+  const c=ctxAni();
+  const r = Math.max(1, Math.floor(rad));
+  const sx = clamp(cx-r,0,W-1), sy=clamp(cy-r,0,H-1), ex=clamp(cx+r,0,W-1), ey=clamp(cy+r,0,H-1);
+  const id = c.getImageData(0,0,W,H);
+  let sr=0, sg=0, sb=0, cnt=0;
+  for(let y=sy;y<=ey;y++){
+    for(let x=sx;x<=ex;x++){
+      const dx=x-cx, dy=y-cy; if(dx*dx+dy*dy>r*r) continue;
+      const i=(y*W+x)*4; sr+=id.data[i]; sg+=id.data[i+1]; sb+=id.data[i+2]; cnt++;
+    }
+  }
+  return {r: Math.round(sr/(cnt||1)), g: Math.round(sg/(cnt||1)), b: Math.round(sb/(cnt||1))};
+}
+
+let raf=null, startTime=0, total=0;
+aniPreview.addEventListener('click', ()=>{
+  if(!bmp) return;
+  const dur = +aniDur.value, fps = +aniFps.value;
+  startTime=performance.now(); total=dur*1000;
+  const step = (now)=>{
+    const elapsed = now - startTime;
+    const t = (elapsed/1000);
+    drawFrame(t);
+    if(elapsed < total) setTimeout(()=> requestAnimationFrame(step), 1000/fps);
+  };
+  requestAnimationFrame(step);
+});
+
+aniExport.addEventListener('click', async ()=>{
+  if(!('MediaRecorder' in window) || !('captureStream' in HTMLCanvasElement.prototype)){ alert('この端末は書き出し非対応です'); return; }
+  if(!bmp) return;
+  const fps = +aniFps.value, dur=+aniDur.value;
+  const stream = aniCanvas.captureStream(fps);
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
+             : MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8'
+             : 'video/webm';
+  const rec = new MediaRecorder(stream, {mimeType:mime});
+  const chunks=[];
+  rec.ondataavailable = e=>{ if(e.data.size) chunks.push(e.data); };
+  rec.onstop = ()=>{
+    const blob = new Blob(chunks, {type:mime});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='alive_portrait.webm'; a.click();
+  };
+  rec.start();
+
+  let frames = Math.floor(fps*dur);
+  let t=0;
+  const tick = ()=>{
+    drawFrame(t/fps);
+    t++;
+    if(t<=frames) requestAnimationFrame(tick);
+    else rec.stop();
+  };
+  requestAnimationFrame(tick);
+});
+
+})();</script>
+</body>
+</html>

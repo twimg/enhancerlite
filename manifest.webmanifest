@@ -1,0 +1,16 @@
+{
+  "name": "Media Enhancer Lite — All‑in‑One",
+  "short_name": "EnhancerLite",
+  "display": "standalone",
+  "start_url": "./MediaEnhancer_Lite_AllInOne_PWA.html",
+  "scope": "./",
+  "background_color": "#0c0f0e",
+  "theme_color": "#3aa36d",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAQCAYAAAB49x9EAAAACXBIWXMAAAsSAAALEgHS3X78AAAAtklEQVRYhe2WTQqDMBBF/6c8oU0zXj3Q9HqH6J7gK2wq2o8QqEwK4B9C3F1MyE1w8m0jT5m2w1l7cHc3S7s5m3hQhJm0cJk9P2B3aM4qz/uQ2oVb3c7a3LhQ2xV2h6E+oT2tQ8vQz6i6wKQ2Qe7cA2tM8n0lQ+0gO1p8gC4sVx8i2Qz1n6x8qgV9m7m+gN3yHqg8Q8l8g0m6l3b8K9f3K4v7v0m9+e1k1W9Ew3dZt1m2v2GmB8kzj3c3wW7yQm6+9ywVfA7yKzb9R1E3AAAAAElFTkSuQmCC",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ]
+}
